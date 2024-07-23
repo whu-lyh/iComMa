@@ -23,6 +23,12 @@
 
 ![exp](docs/github_exp.gif)
 
+## Required to know
+
+Infact, the image pose is the only learnable parameter which requires a initial pose. The loss from key-points matching and render image render-and-compare MSE loss is used to surprised the learning process. The training of Gaussian is based on the raw repo and the weights of LoFTR is fixed.
+
+What should I do next is to find a LiDAR-prior 3DGS method to generate the large-scale Gaussian models and rerun the run.py
+
 ## Installation
 Create environment through conda:
 ```
@@ -38,7 +44,7 @@ Clone the repository and install dependencies:
 ```
 git clone https://github.com/YuanSun-XJTU/iComMa.git
 cd iComMa
-pip install -r requirements.txt
+pip install -r requirements.txt  -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 ## Tutorial
 **1. Download the pre-trained LoFTR model.**

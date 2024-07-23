@@ -9,12 +9,15 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
+from math import exp
+
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
-from math import exp
+
 from utils.image_utils import rgb2loftrgray
-import numpy as np
+
 
 def l1_loss(network_output, gt):
     return torch.abs((network_output - gt)).mean()
@@ -27,8 +30,8 @@ def loss_mse(reder_img,gt):
     loss2 = loss_fn(reder_img,gt)
     return loss2
 
-def loss_loftr(q_img,r_img,matcher,threshold,min_num_points):
-    q_img_gray=rgb2loftrgray(q_img)
+def loss_loftr(q_img, r_img, matcher, threshold, min_num_points):
+    q_img_gray = rgb2loftrgray(q_img)
     r_img_gray = rgb2loftrgray(r_img)
     batch = {'image0':q_img_gray, 'image1':r_img_gray}
     matcher(batch)
