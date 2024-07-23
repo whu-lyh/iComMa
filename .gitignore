@@ -9,5 +9,6 @@ submodules/simple-knn/simple_knn.egg-info/
 LoFTR/src/loftr/*/__pycache__/*.pyc
 LoFTR/src/loftr/__pycache__
 LoFTR/src/loftr/utils/__pycache__
+LoFTR/ckpt*.ckpt
 tensorboard_3d
 screenshots

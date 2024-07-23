@@ -23,14 +23,6 @@
 
 ![exp](docs/github_exp.gif)
 
-## Required to know
-
-In fact the run code is the simple implementation of how to combine the LoFTR and render-and-compare MSE to optimize the pose. The Guassian model is trained by other ways, while the weight of LoFTR is fixed.
-
-What should I do is to find a large-scale LiDAR-prior 3DGS to generate the Gaussian model and save the related parameters.
-
-Then reru the iComMa run.py
-
 ## Installation
 Create environment through conda:
 ```
@@ -46,7 +38,7 @@ Clone the repository and install dependencies:
 ```
 git clone https://github.com/YuanSun-XJTU/iComMa.git
 cd iComMa
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+pip install -r requirements.txt
 ```
 ## Tutorial
 **1. Download the pre-trained LoFTR model.**
