@@ -64,11 +64,11 @@ class ModelParams(ParamGroup):
 class iComMaParams(ParamGroup):
     def __init__(self, parser):
         self.OVERLAY = True
-        self.camera_pose_lr = 0.05 # learning rate
+        self.camera_pose_lr = 0.0001 # 0.05 learning rate
         self.lambda_LoFTR = 0.8 # balance coefficient
         self.confidence_threshold_LoFTR = 0.5 # Matching points below the threshold will be discarded.
         self.min_matching_points = 5 # The matching module will be deprecated if there are too few detected matching points.
-        self.pose_estimation_iter = 500 # Number of iterations.
+        self.pose_estimation_iter = 500 # 200 Number of iterations.
         self.compute_grad_cov2d = True
         self.deprecate_matching = False # Whether to deprecate the matching module from the beginning.
         self.LoFTR_ckpt_path = "LoFTR/ckpt/outdoor_ds.ckpt"

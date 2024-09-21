@@ -350,8 +350,8 @@ void CudaRasterizer::Rasterizer::backward(
 	const float* cov3D_precomp,
 	const float* viewmatrix,
 	const float* projmatrix,
-	const float* proj_k,
-	const bool* compute_grad_cov2d,
+	const float* proj_k, // iComMa
+	const bool* compute_grad_cov2d, // iComMa
 	const float* campos,
 	const float tan_fovx, float tan_fovy,
 	const int* radii,
@@ -368,7 +368,7 @@ void CudaRasterizer::Rasterizer::backward(
 	float* dL_dsh,
 	float* dL_dscale,
 	float* dL_drot,
-	float* dL_dcamerapose,
+	float* dL_dcamerapose, // iComMa
 	bool debug)
 {
 	GeometryState geomState = GeometryState::fromChunk(geom_buffer, P);
@@ -423,8 +423,8 @@ void CudaRasterizer::Rasterizer::backward(
 		cov3D_ptr,
 		viewmatrix,
 		projmatrix,
-		proj_k,
-		compute_grad_cov2d,
+		proj_k, // icomMa
+		compute_grad_cov2d, // icomMa
 		focal_x, focal_y,
 		tan_fovx, tan_fovy,
 		(glm::vec3*)campos,
@@ -436,5 +436,5 @@ void CudaRasterizer::Rasterizer::backward(
 		dL_dsh,
 		(glm::vec3*)dL_dscale,
 		(glm::vec4*)dL_drot,
-		(float4*)dL_dcamerapose), debug)
+		(float4*)dL_dcamerapose), debug) // icomMa
 }

@@ -46,8 +46,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         campos=viewpoint_camera.camera_center,
         prefiltered=False,
         debug=pipe.debug,
-        compute_grad_cov2d=compute_grad_cov2d,
-        proj_k=viewpoint_camera.projection_matrix
+        compute_grad_cov2d=compute_grad_cov2d, # icomMa
+        proj_k=viewpoint_camera.projection_matrix # icomMa
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
@@ -93,8 +93,8 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         scales = scales,
         rotations = rotations,
         cov3D_precomp = cov3D_precomp,
-        camera_center = viewpoint_camera.camera_center,
-        camera_pose = viewpoint_camera.world_view_transform)
+        camera_center = viewpoint_camera.camera_center, # iComMa
+        camera_pose = viewpoint_camera.world_view_transform) # iComMa
 
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.

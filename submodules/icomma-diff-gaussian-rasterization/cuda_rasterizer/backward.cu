@@ -148,11 +148,11 @@ __global__ void computeCov2DCUDA(int P,
 	const float h_x, float h_y,
 	const float tan_fovx, float tan_fovy,
 	const float* view_matrix,
-	const bool* compute_grad_cov2d,
+	const bool* compute_grad_cov2d, // iComMa
 	const float* dL_dconics,
 	float3* dL_dmeans,
 	float* dL_dcov,
-	float4* dL_dcamerapose
+	float4* dL_dcamerapose // iComMa
 )
 {
 	auto idx = cg::this_grid().thread_rank();
@@ -275,7 +275,7 @@ __global__ void computeCov2DCUDA(int P,
 	// Additional mean gradient is accumulated in BACKWARD::preprocess.
 	dL_dmeans[idx] = dL_dmean;
 
-	//iComMa: Compute the gradient of the camera pose
+	// iComMa: Compute the gradient of the camera pose
 	if (compute_grad_cov2d)
 	{	
 		glm::vec3 dl_dt = glm::vec3(dL_dtx, dL_dty, dL_dtz);
@@ -386,8 +386,8 @@ __global__ void preprocessCUDA(
 	const glm::vec4* rotations,
 	const float scale_modifier,
 	const float* proj,
-	const float* view_matrix,
-	const float* proj_k,
+	const float* view_matrix, // iComMa
+	const float* proj_k, // iComMa
 	const glm::vec3* campos,
 	const float3* dL_dmean2D,
 	glm::vec3* dL_dmeans,
@@ -396,7 +396,7 @@ __global__ void preprocessCUDA(
 	float* dL_dsh,
 	glm::vec3* dL_dscale,
 	glm::vec4* dL_drot,
-	float4* dL_dcamerapose)
+	float4* dL_dcamerapose) // iComMa
 {
 	auto idx = cg::this_grid().thread_rank();
 	if (idx >= P || !(radii[idx] > 0))
@@ -429,7 +429,7 @@ __global__ void preprocessCUDA(
 	if (scales)
 		computeCov3D(idx, scales[idx], scale_modifier, rotations[idx], dL_dcov3D, dL_dscale, dL_drot);
 
-	//iComMa: Compute the gradient of the camera pose
+	// iComMa: Compute the gradient of the camera pose
 	float a = dL_dmean2D[idx].x * m_w;
 	float b = dL_dmean2D[idx].y * m_w;
 	float c = - dL_dmean2D[idx].x * m_hom.x * m_w * m_w - dL_dmean2D[idx].y * m_hom.y * m_w * m_w;
@@ -628,8 +628,8 @@ void BACKWARD::preprocess(
 	const float* cov3Ds,
 	const float* viewmatrix,
 	const float* projmatrix,
-	const float* proj_k,
-	const bool* compute_grad_cov2d,
+	const float* proj_k, // iComMa
+	const bool* compute_grad_cov2d, // iComMa
 	const float focal_x, float focal_y,
 	const float tan_fovx, float tan_fovy,
 	const glm::vec3* campos,
@@ -641,7 +641,7 @@ void BACKWARD::preprocess(
 	float* dL_dsh,
 	glm::vec3* dL_dscale,
 	glm::vec4* dL_drot,
-	float4* dL_dcamerapose)
+	float4* dL_dcamerapose) // iComMa
 {
 	// Propagate gradients for the path of 2D conic matrix computation. 
 	// Somewhat long, thus it is its own kernel rather than being part of 
@@ -657,11 +657,11 @@ void BACKWARD::preprocess(
 		tan_fovx,
 		tan_fovy,
 		viewmatrix,
-		compute_grad_cov2d,
+		compute_grad_cov2d, // iComMa
 		dL_dconic,
 		(float3*)dL_dmean3D,
 		dL_dcov3D,
-		dL_dcamerapose);
+		dL_dcamerapose); // iComMa
 
 	// Propagate gradients for remaining steps: finish 3D mean gradients,
 	// propagate color gradients to SH (if desireD), propagate 3D covariance
@@ -677,7 +677,7 @@ void BACKWARD::preprocess(
 		scale_modifier,
 		projmatrix,
 		viewmatrix,
-		proj_k,
+		proj_k, // iComMa
 		campos,
 		(float3*)dL_dmean2D,
 		(glm::vec3*)dL_dmean3D,
@@ -686,7 +686,7 @@ void BACKWARD::preprocess(
 		dL_dsh,
 		dL_dscale,
 		dL_drot,
-		dL_dcamerapose);
+		dL_dcamerapose); // iComMa
 }
 
 void BACKWARD::render(

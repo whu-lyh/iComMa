@@ -1,8 +1,9 @@
 einops==0.3.0
-kornia==0.4.1
+kornia>=0.6.11
 yacs>=0.1.8
 imageio
 opencv-python==4.9.0.80
 plyfile==1.0.3
+matplotlib
 submodules/icomma-diff-gaussian-rasterization
 submodules/simple-knn

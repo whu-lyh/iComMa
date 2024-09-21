@@ -47,8 +47,8 @@ class iComMa_input_info(NamedTuple):
     image_height:int
 
 def get_pose_estimation_input(obs_view, delta):
-    gt_pose_c2w=combine_3dgs_rotation_translation(obs_view.R, obs_view.T)
-    start_pose_c2w =  trans_t_xyz(delta[3],delta[4],delta[5]) @ \
+    gt_pose_c2w = combine_3dgs_rotation_translation(obs_view.R, obs_view.T)
+    start_pose_c2w = trans_t_xyz(delta[3],delta[4],delta[5]) @ \
                                 rot_phi(delta[0]/180.*np.pi) @ \
                                 rot_theta(delta[1]/180.*np.pi) @ \
                                 rot_psi(delta[2]/180.*np.pi)  @ gt_pose_c2w

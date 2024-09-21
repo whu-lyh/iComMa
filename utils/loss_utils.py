@@ -25,9 +25,9 @@ def l1_loss(network_output, gt):
 def l2_loss(network_output, gt):
     return ((network_output - gt) ** 2).mean()
 
-def loss_mse(reder_img,gt):
+def loss_mse(reder_img, gt):
     loss_fn = torch.nn.MSELoss()
-    loss2 = loss_fn(reder_img,gt)
+    loss2 = loss_fn(reder_img, gt)
     return loss2
 
 def loss_loftr(q_img, r_img, matcher, threshold, min_num_points):

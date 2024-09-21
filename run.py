@@ -1,4 +1,5 @@
 import ast
+import math
 import os
 from argparse import ArgumentParser
 from copy import deepcopy
@@ -12,6 +13,8 @@ import torch.optim as optim
 from arguments import (ModelParams, PipelineParams, get_combined_args,
                        iComMaParams)
 from gaussian_renderer import GaussianModel, render
+from LightGlue.lightglue import DISK, LightGlue, SuperPoint, viz2d
+from LightGlue.lightglue.utils import load_image, rbd
 from LoFTR.src.loftr import LoFTR, default_cfg
 from scene import Scene
 from scene.cameras import Camera_Pose
@@ -32,6 +35,47 @@ def load_LoFTR(ckpt_path:str, temp_bug_fix:bool):
     LoFTR_model = LoFTR_model.eval().cuda()
     return LoFTR_model
 
+def loss_glue(kpc0, kpc1):
+    match_pt_count = kpc0.shape[0]
+    x1 = kpc0[:,0] / 376
+    y1 = kpc0[:,1] / 1408
+    x2 = kpc1[:,0] / 376
+    y2 = kpc1[:,1] / 1408
+    error_i = (x1 - x2) ** 2 + (y1 - y2) ** 2
+    error_i = error_i.float().cuda()
+    loss = torch.sum(error_i) / match_pt_count
+    return loss
+
+def match_lightglue(image0, image1, save_match: bool=False):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 'mps', 'cpu'
+
+    extractor = SuperPoint(max_num_keypoints=4096).eval().to(device)  # load the extractor
+    matcher = LightGlue(features="superpoint").eval().to(device)
+
+    feats0 = extractor.extract(image0.to(device))
+    feats1 = extractor.extract(image1.to(device))
+    matches01 = matcher({"image0": feats0, "image1": feats1})
+    feats0, feats1, matches01 = [
+        rbd(x) for x in [feats0, feats1, matches01]
+    ]  # remove batch dimension
+
+    kpts0, kpts1, matches = feats0["keypoints"], feats1["keypoints"], matches01["matches"]
+    m_kpts0, m_kpts1 = kpts0[matches[..., 0]], kpts1[matches[..., 1]]
+
+    if save_match:
+        axes = viz2d.plot_images([image0, image1])
+        viz2d.plot_matches(m_kpts0, m_kpts1, color="lime", lw=0.2)
+        viz2d.add_text(0, f'Stop after {matches01["stop"]} layers', fs=20)
+        viz2d.save_plot("./match_lightglue_lines.png")
+
+        kpc0, kpc1 = viz2d.cm_prune(matches01["prune0"]), viz2d.cm_prune(matches01["prune1"])
+        viz2d.plot_images([image0, image1])
+        viz2d.plot_keypoints([kpts0, kpts1], colors=[kpc0, kpc1], ps=10)
+        viz2d.save_plot("./match_lightglue_pts.png")
+
+    return loss_glue(m_kpts0, m_kpts1)
+
+
 def camera_pose_estimation(gaussians:GaussianModel, background:torch.tensor, LoFTR_model,
                            pipeline:PipelineParams, icommaparams:iComMaParams, icomma_info, output_path):
     # start pose & gt pose
@@ -46,7 +90,7 @@ def camera_pose_estimation(gaussians:GaussianModel, background:torch.tensor, LoF
     camera_pose.cuda()
     # store gif elements
     imgs=[]
-    
+
     matching_flag = not icommaparams.deprecate_matching
 
     # start optimizing
@@ -57,10 +101,11 @@ def camera_pose_estimation(gaussians:GaussianModel, background:torch.tensor, LoF
 
         rendering = render(camera_pose, gaussians, pipeline, 
                            background, compute_grad_cov2d=icommaparams.compute_grad_cov2d)["render"]
-
+        
         if matching_flag:
             loss_matching = loss_loftr(query_image, rendering, LoFTR_model, 
                                        icommaparams.confidence_threshold_LoFTR, icommaparams.min_matching_points)
+            # loss_matching = match_lightglue(query_image, rendering)
             loss_comparing = loss_mse(rendering, query_image)
             
             if loss_matching is None:
@@ -90,10 +135,11 @@ def camera_pose_estimation(gaussians:GaussianModel, background:torch.tensor, LoF
             # record error
             with torch.no_grad():
                 cur_pose_c2w = camera_pose.current_campose_c2w()
-                rot_error,translation_error = cal_campose_error(cur_pose_c2w, gt_pose_c2w)
+                # print("cur_pose_c2w: ", cur_pose_c2w)
+                rot_error, translation_error = cal_campose_error(cur_pose_c2w, gt_pose_c2w)
                 print('Rotation error: ', rot_error)
                 print('Translation error: ', translation_error)
-                print('-----------------------------------')
+                # print('-----------------------------------')
                
             # output images
             if icommaparams.OVERLAY is True:
@@ -104,6 +150,8 @@ def camera_pose_estimation(gaussians:GaussianModel, background:torch.tensor, LoF
                     filename = os.path.join(output_path, str(k) + '.png')
                     dst = cv2.addWeighted(rgb8, 0.7, ref, 0.3, 0)
                     imageio.imwrite(filename, dst)
+                    filename = os.path.join(output_path, 'render_' + str(k) + '.png')
+                    imageio.imwrite(filename, rgb8)
                     imgs.append(dst)
 
         optimizer.zero_grad()
@@ -124,8 +172,9 @@ if __name__ == "__main__":
     icommaparams = iComMaParams(parser)
     parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--output_path", default='output', type=str, help="output path")
-    parser.add_argument("--obs_img_index", default=0, type=int)
-    parser.add_argument("--delta", default="[30,10,10,0.1,0.1,0.1]", type=str)
+    parser.add_argument("--obs_img_index", default=20, type=int)
+    parser.add_argument("--delta", default="[30, 10, 5, 0.1, 0.2, 0.3]", type=str)
+    # parser.add_argument("--delta", default="[1,1,1,0.1,0.1,1.1]", type=str)
     parser.add_argument("--iteration", default=-1, type=int)
     args = get_combined_args(parser)
     # Initialize system state (RNG)
@@ -141,9 +190,20 @@ if __name__ == "__main__":
     # get camera info from Scene
     # Reused 3DGS code to obtain camera information. 
     # You can customize the iComMa_input_info in practical applications.
-    scene = Scene(dataset, gaussians, load_iteration=args.iteration,shuffle=False)
-    obs_view=scene.getTestCameras()[args.obs_img_index]
-    #obs_view=scene.getTrainCameras()[args.obs_img_index]
-    icomma_info=get_pose_estimation_input(obs_view, ast.literal_eval(args.delta))
+    scene = Scene(dataset, gaussians, load_iteration=args.iteration, shuffle=False)
+    obs_view = scene.getTestCameras()[args.obs_img_index]
+    #obs_view = scene.getTrainCameras()[args.obs_img_index]
+    print("obs_view: ", obs_view)
+    icomma_info = get_pose_estimation_input(obs_view, ast.literal_eval(args.delta))
     # pose estimation
-    camera_pose_estimation(gaussians, background, pipeline, LoFTR_model, icommaparams,icomma_info, args.output_path)
+    camera_pose_estimation(gaussians, background, LoFTR_model, pipeline, icommaparams, icomma_info, args.output_path)
+
+
+
+
+
+
+    # image0 = load_image('/workspace/vegs/bash_scripts/output/pose_estimated_results/ref.png')
+    # image1 = load_image('/workspace/vegs/bash_scripts/output/pose_estimated_results/rendered_179.png')
+    # loss = match_lightglue(image0, image1)
+    # print(loss)

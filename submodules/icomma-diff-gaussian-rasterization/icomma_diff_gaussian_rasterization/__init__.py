@@ -28,8 +28,8 @@ def rasterize_gaussians(
     rotations,
     cov3Ds_precomp,
     raster_settings,
-    camera_center,
-    camera_pose
+    camera_center, # iComMa
+    camera_pose # iComMa
 ):
     return _RasterizeGaussians.apply(
         means3D,
@@ -41,8 +41,8 @@ def rasterize_gaussians(
         rotations,
         cov3Ds_precomp,
         raster_settings,
-        camera_center,
-        camera_pose
+        camera_center, # iComMa
+        camera_pose # iComMa
     )
 
 class _RasterizeGaussians(torch.autograd.Function):
@@ -58,8 +58,8 @@ class _RasterizeGaussians(torch.autograd.Function):
         rotations,
         cov3Ds_precomp,
         raster_settings,
-        camera_center,
-        camera_pose
+        camera_center, # iComMa
+        camera_pose # iComMa
     ):
 
         # Restructure arguments the way that the C++ lib expects them
@@ -80,7 +80,7 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.image_width,
             sh,
             raster_settings.sh_degree,
-            camera_center,
+            camera_center, # iComMa
             raster_settings.prefiltered,
             raster_settings.debug
         )
@@ -100,7 +100,7 @@ class _RasterizeGaussians(torch.autograd.Function):
         # Keep relevant tensors for backward
         ctx.raster_settings = raster_settings
         ctx.num_rendered = num_rendered
-        ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer, camera_center,camera_pose)
+        ctx.save_for_backward(colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer, camera_center, camera_pose)
         return color, radii
 
     @staticmethod
@@ -109,7 +109,7 @@ class _RasterizeGaussians(torch.autograd.Function):
         # Restore necessary values from context
         num_rendered = ctx.num_rendered
         raster_settings = ctx.raster_settings
-        colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer,camera_center,camera_pose = ctx.saved_tensors
+        colors_precomp, means3D, scales, rotations, cov3Ds_precomp, radii, sh, geomBuffer, binningBuffer, imgBuffer, camera_center, camera_pose = ctx.saved_tensors # iComMa
 
         # Restructure args as C++ method expects them
         args = (raster_settings.bg,
@@ -122,14 +122,14 @@ class _RasterizeGaussians(torch.autograd.Function):
                 cov3Ds_precomp, 
                 raster_settings.viewmatrix, 
                 raster_settings.projmatrix,
-                raster_settings.proj_k,
-                raster_settings.compute_grad_cov2d, 
+                raster_settings.proj_k, # iComMa
+                raster_settings.compute_grad_cov2d, # iComMa
                 raster_settings.tanfovx, 
                 raster_settings.tanfovy, 
                 grad_out_color, 
                 sh, 
                 raster_settings.sh_degree, 
-                camera_center,
+                camera_center, # iComMa
                 geomBuffer,
                 num_rendered,
                 binningBuffer,
@@ -139,13 +139,13 @@ class _RasterizeGaussians(torch.autograd.Function):
         # Compute gradients for relevant tensors by invoking backward method
         if raster_settings.debug:
             cpu_args = cpu_deep_copy_tuple(args) # Copy them before they can be corrupted
-            try:
+            try: # iComMa
                 grad_means2D, grad_colors_precomp, grad_opacities, grad_means3D, grad_cov3Ds_precomp, grad_sh, grad_scales, grad_rotations, grad_camera_pose = _C.rasterize_gaussians_backward(*args)
             except Exception as ex:
                 torch.save(cpu_args, "snapshot_bw.dump")
                 print("\nAn error occured in backward. Writing snapshot_bw.dump for debugging.\n")
                 raise ex
-        else:
+        else: # iComMa
             grad_means2D, grad_colors_precomp, grad_opacities, grad_means3D, grad_cov3Ds_precomp, grad_sh, grad_scales, grad_rotations, grad_camera_pose = _C.rasterize_gaussians_backward(*args)
 
         # print(grad_camera_pose)
@@ -159,8 +159,8 @@ class _RasterizeGaussians(torch.autograd.Function):
             grad_rotations,
             grad_cov3Ds_precomp,
             None,
-            None,
-            grad_camera_pose
+            None, # iComMa
+            grad_camera_pose # iComMa
         )
         
         return grads
@@ -174,8 +174,8 @@ class GaussianRasterizationSettings(NamedTuple):
     scale_modifier : float
     viewmatrix : torch.Tensor
     projmatrix : torch.Tensor
-    proj_k : torch.Tensor
-    compute_grad_cov2d : bool
+    proj_k : torch.Tensor # iComMa
+    compute_grad_cov2d : bool # iComMa
     sh_degree : int
     campos : torch.Tensor
     prefiltered : bool
@@ -197,7 +197,7 @@ class GaussianRasterizer(nn.Module):
                 raster_settings.projmatrix)
             
         return visible
-
+    # iComMa
     def forward(self, means3D, means2D, opacities, shs = None, colors_precomp = None, scales = None, rotations = None, cov3D_precomp = None, camera_center=None, camera_pose=None):
         
         raster_settings = self.raster_settings
@@ -219,10 +219,11 @@ class GaussianRasterizer(nn.Module):
             rotations = torch.Tensor([])
         if cov3D_precomp is None:
             cov3D_precomp = torch.Tensor([])
-        if camera_center is None:
-            camera_center = torch.Tensor([])
-        if camera_pose is None:
-            camera_pose = torch.Tensor([])
+        if camera_center is None: # iComMa
+            camera_center = torch.Tensor([]) # iComMa
+        if camera_pose is None: # iComMa
+            camera_pose = torch.Tensor([]) # iComMa
+
         # Invoke C++/CUDA rasterization routine
         return rasterize_gaussians(
             means3D,
@@ -234,7 +235,7 @@ class GaussianRasterizer(nn.Module):
             rotations,
             cov3D_precomp,
             raster_settings,
-            camera_center,
-            camera_pose
+            camera_center, # iComMa
+            camera_pose # iComMa
         )
 
