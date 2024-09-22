@@ -423,8 +423,8 @@ void CudaRasterizer::Rasterizer::backward(
 		cov3D_ptr,
 		viewmatrix,
 		projmatrix,
-		proj_k, // icomMa
-		compute_grad_cov2d, // icomMa
+		proj_k, // iComMa
+		compute_grad_cov2d, // iComMa
 		focal_x, focal_y,
 		tan_fovx, tan_fovy,
 		(glm::vec3*)campos,
@@ -436,5 +436,5 @@ void CudaRasterizer::Rasterizer::backward(
 		dL_dsh,
 		(glm::vec3*)dL_dscale,
 		(glm::vec4*)dL_drot,
-		(float4*)dL_dcamerapose), debug) // icomMa
+		(float4*)dL_dcamerapose), debug) // iComMa
 }
